@@ -20,7 +20,7 @@ type Book = String;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let pool = PgPool::connect(&dotenvy::var("DATABASE_URL")?).await?;
-    sqlx::migrate!().run(&pool).await?;
+    //sqlx::migrate!().run(&pool).await?;
 
     let app = Router::new()
         .route("/book/{id}", get(get_book))
@@ -111,7 +111,7 @@ use sqlx::Row;
 
 /// Fetches a book with `id` from the database.
 async fn get_book_from_db(id: i64, pool: &PgPool) -> Option<Book> {
-    let res = sqlx::query("SELECT words FROM book WHERE book_id == $1")
+    let res = sqlx::query("SELECT words FROM books WHERE book_id == $1")
         .bind(id)
         .fetch_one(pool)
         .await;
@@ -123,5 +123,10 @@ async fn get_book_from_db(id: i64, pool: &PgPool) -> Option<Book> {
 
 /// Places a `book` with `id` in database.
 async fn insert_book_into_db(id: i64, book: &Book, pool: &PgPool) {
-    ()
+    sqlx::query("INSERT INTO books VALUES ($1, $2);")
+        .bind(id)
+        .bind(book)
+        .execute(pool)
+        .await
+        .expect("double check insertion query");
 }
