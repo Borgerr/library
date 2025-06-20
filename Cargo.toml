@@ -11,8 +11,11 @@ utoipa-axum = "0.2.0"
 maud = "0.27.0"
 tokio = { version = "1.45.1", features = ["full"] }
 sqlx = { version = "0.8.6", features = [
-    "chrono",
     "postgres",
     "runtime-tokio",
-    "time",
+    "tls-native-tls",
 ] }
+lazy_static = "1.5.0"
+dashmap = "6.1.0"
+anyhow = "1.0.98"
+dotenvy = "0.15.7"
