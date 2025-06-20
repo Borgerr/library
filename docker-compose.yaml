@@ -24,9 +24,7 @@ services:
     environment:
       - LIBMGR_ADDR=${LIBMGR_ADDR}
       - LIBMGR_PORT=${LIBMGR_PORT}
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@library-db:${DB_PORT}/${POSTGRES_NAME}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
     ports:
       - ${LIBMGR_PORT}:${LIBMGR_PORT}
     networks:

@@ -12,7 +12,7 @@ use tokio::time::{Duration, sleep};
 use std::sync::Arc;
 
 lazy_static! {
-    static ref GENERATING_IDS: Arc<DashSet<usize>> = Arc::new(DashSet::new());
+    static ref GENERATING_IDS: Arc<DashSet<i64>> = Arc::new(DashSet::new());
 }
 
 type Book = String;
@@ -44,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
 /// Actual endpoint for getting the book to the user.
 /// Gets the book text from `find_book`, then encodes as HTML,
 /// then moves on.
-async fn get_book(Path(id): Path<usize>, State(pool): State<PgPool>) -> String {
+async fn get_book(Path(id): Path<i64>, State(pool): State<PgPool>) -> String {
     // TODO: use maud to encode in HTML, or feed into some frontend
     // I'd currently prefer to do the former
     // but that depends on how the style comes out
@@ -53,7 +53,8 @@ async fn get_book(Path(id): Path<usize>, State(pool): State<PgPool>) -> String {
 
 /// Locates a book and returns it to caller.
 /// Generates and inserts into database if necessary.
-async fn find_book(id: usize, pool: PgPool) -> Book {
+async fn find_book(id: i64, pool: PgPool) -> Book {
+    // TODO: add env vars for max book size and how long to sleep per loop iteration?
     match get_book_from_db(id, &pool).await {
         Some(book) => book,
         None => {
@@ -61,15 +62,14 @@ async fn find_book(id: usize, pool: PgPool) -> Book {
                 // TODO: do we want to leave the client waiting for gen,
                 // or do we want to return a "hey, come back later"?
                 GENERATING_IDS.insert(id);
-                let len = rand::random_range(0..4096);
+                let len = rand::random_range(0..(1 << 22));
                 let book = random_book(len);
                 insert_book_into_db(id, &book, &pool).await;
                 GENERATING_IDS.remove(&id);
                 book
             } else {
                 while !can_claim_book(id) {
-                    // TODO: maybe change this duration
-                    sleep(Duration::from_millis(100)).await
+                    sleep(Duration::from_millis(10)).await
                 }
                 get_book_from_db(id, &pool)
                     .await
@@ -83,7 +83,7 @@ async fn find_book(id: usize, pool: PgPool) -> Book {
 /// With multiple clients, and a long time for generating books,
 /// thread needs to claim book.
 /// Returns a bool saying whether or not we can claim a book with id.
-fn can_claim_book(id: usize) -> bool {
+fn can_claim_book(id: i64) -> bool {
     !GENERATING_IDS.contains(&id)
 }
 
@@ -107,13 +107,21 @@ fn random_book(len: usize) -> Book {
  * DATABASE FUNCTIONS
  * --------------------------------------------------------------------------------
  */
+use sqlx::Row;
 
 /// Fetches a book with `id` from the database.
-async fn get_book_from_db(id: usize, pool: &PgPool) -> Option<Book> {
-    todo!()
+async fn get_book_from_db(id: i64, pool: &PgPool) -> Option<Book> {
+    let res = sqlx::query("SELECT words FROM book WHERE book_id == $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await;
+    match res {
+        Ok(book) => book.get("words"),
+        Err(_) => None,
+    }
 }
 
 /// Places a `book` with `id` in database.
-async fn insert_book_into_db(id: usize, book: &Book, pool: &PgPool) {
-    todo!()
+async fn insert_book_into_db(id: i64, book: &Book, pool: &PgPool) {
+    ()
 }
