@@ -1,17 +1,34 @@
-name: library
-
 services:
   library-db:
     image: postgres:17.5-bookworm
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_DB=${POSTGRES_NAME}
     ports:
       - ${DB_PORT}:${DB_PORT}
     volumes:
       - library-db:/var/lib/postgresql/data
       - /etc/localtime:/etc/localtime:ro
+    networks:
+      - library
+
+  library-mgr:
+    image: library-mgr:latest
+    container_name: LibraryMgr
+    restart: unless-stopped
+    hostname: LibraryMgr
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      - LIBMGR_ADDR=${LIBMGR_ADDR}
+      - LIBMGR_PORT=${LIBMGR_PORT}
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@library-db:${DB_PORT}/${POSTGRES_NAME}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - ${LIBMGR_PORT}:${LIBMGR_PORT}
     networks:
       - library
 
@@ -22,3 +39,4 @@ volumes:
 networks:
   library:
     name: library
+

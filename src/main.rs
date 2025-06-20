@@ -7,9 +7,7 @@ use dashmap::DashSet;
 use lazy_static::lazy_static;
 use rand::prelude::*;
 use sqlx::PgPool;
-use tokio::{
-    time::{Duration, sleep},
-};
+use tokio::time::{Duration, sleep};
 
 use std::sync::Arc;
 
@@ -21,14 +19,19 @@ type Book = String;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // TODO: set up db
     let pool = PgPool::connect(&dotenvy::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&pool).await?;
 
     let app = Router::new()
-        .route("/book/:id", get(get_book))
+        .route("/book/{id}", get(get_book))
         .with_state(pool);
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+    // TODO: possibly change URL depending on config
+    let addr = format!(
+        "{}:{}",
+        &dotenvy::var("LIBMGR_ADDR")?,
+        &dotenvy::var("LIBMGR_PORT")?
+    );
+    let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("was unable to bind to specified port");
     axum::serve(listener, app)
