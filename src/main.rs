@@ -1,10 +1,12 @@
 use axum::{
     Router,
     extract::{Path, State},
+    response::Html,
     routing::get,
 };
 use dashmap::DashSet;
 use lazy_static::lazy_static;
+use maud::{DOCTYPE, html};
 use rand::prelude::*;
 use sqlx::PgPool;
 use tokio::time::{Duration, sleep};
@@ -21,6 +23,7 @@ type Book = String;
 async fn main() -> anyhow::Result<()> {
     let pool = PgPool::connect(&dotenvy::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&pool).await?;
+    // sanity check. TODO: maybe come back to this and remove if redundant
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS books (
@@ -54,11 +57,19 @@ async fn main() -> anyhow::Result<()> {
 /// Actual endpoint for getting the book to the user.
 /// Gets the book text from `find_book`, then encodes as HTML,
 /// then moves on.
-async fn get_book(Path(id): Path<i64>, State(pool): State<PgPool>) -> String {
+async fn get_book(Path(id): Path<i64>, State(pool): State<PgPool>) -> Html<String> {
     // TODO: use maud to encode in HTML, or feed into some frontend
     // I'd currently prefer to do the former
     // but that depends on how the style comes out
-    format!("book with ID: {}, \r\n{}", id, find_book(id, pool).await)
+    let book = find_book(id, pool).await;
+    Html(
+        html! {
+            (DOCTYPE)
+            h1 { "Book " (id) }
+            p { (book) }
+        }
+        .into_string(),
+    )
 }
 
 /// Locates a book and returns it to caller.
