@@ -20,7 +20,17 @@ type Book = String;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let pool = PgPool::connect(&dotenvy::var("DATABASE_URL")?).await?;
-    //sqlx::migrate!().run(&pool).await?;
+    sqlx::migrate!().run(&pool).await?;
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS books (
+        book_id BIGINT PRIMARY KEY,
+        words TEXT NOT NULL
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await?;
 
     let app = Router::new()
         .route("/book/{id}", get(get_book))
@@ -62,7 +72,7 @@ async fn find_book(id: i64, pool: PgPool) -> Book {
                 // TODO: do we want to leave the client waiting for gen,
                 // or do we want to return a "hey, come back later"?
                 GENERATING_IDS.insert(id);
-                let len = rand::random_range(0..(1 << 22));
+                let len = rand::random_range(0..(1 << 12));
                 let book = random_book(len);
                 insert_book_into_db(id, &book, &pool).await;
                 GENERATING_IDS.remove(&id);
@@ -111,13 +121,14 @@ use sqlx::Row;
 
 /// Fetches a book with `id` from the database.
 async fn get_book_from_db(id: i64, pool: &PgPool) -> Option<Book> {
-    let res = sqlx::query("SELECT words FROM books WHERE book_id == $1")
+    let res = sqlx::query("SELECT words FROM books WHERE book_id=$1")
         .bind(id)
         .fetch_one(pool)
         .await;
     match res {
         Ok(book) => book.get("words"),
-        Err(_) => None,
+        //Err(e) => panic!("err: {}", e),
+        Err(e) => None,
     }
 }
 
