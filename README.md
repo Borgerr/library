@@ -18,7 +18,13 @@ and a "library manager" webserver that communicates with it.
 You will need a `.env` file in the root directory. Your `.env` file should look something like:
 
 ```sh
-
+POSTGRES_USER=USER
+POSTGRES_PASSWORD=thisisagoodpassword
+POSTGRES_NAME=postgres
+DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@library-db:${DB_PORT}/${POSTGRES_NAME}
+DB_PORT=5432
+LIBMGR_ADDR=0.0.0.0
+LIBMGR_PORT=3000
 ```
 
 ## Eventual Plans
