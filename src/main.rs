@@ -127,8 +127,7 @@ async fn get_book_from_db(id: i64, pool: &PgPool) -> Option<Book> {
         .await;
     match res {
         Ok(book) => book.get("words"),
-        //Err(e) => panic!("err: {}", e),
-        Err(e) => None,
+        Err(_) => None,
     }
 }
 
