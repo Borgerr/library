@@ -6,8 +6,6 @@ edition = "2024"
 [dependencies]
 rand = { version = "0.9.1", features = ["thread_rng"] }
 axum = {version = "0.8.0", features = ["macros"]}
-utoipa = { version = "5.3.1", features=["axum_extras"] }
-utoipa-axum = "0.2.0"
 maud = "*"
 tokio = { version = "1.45.1", features = ["full"] }
 sqlx = { version = "0.8.6", features = [
